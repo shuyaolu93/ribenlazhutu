@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>日本蜡烛图 K 线形态图谱</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='4' y='7' width='6' height='12' fill='%23EF4B52'/%3E%3Cline x1='7' y1='3' x2='7' y2='7' stroke='%23EF4B52' stroke-width='2'/%3E%3Cline x1='7' y1='19' x2='7' y2='29' stroke='%23EF4B52' stroke-width='2'/%3E%3Crect x='16' y='13' width='6' height='10' fill='%232FA46A'/%3E%3Cline x1='19' y1='10' x2='19' y2='13' stroke='%232FA46A' stroke-width='2'/%3E%3Cline x1='19' y1='23' x2='19' y2='28' stroke='%232FA46A' stroke-width='2'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://miaoda.feishu.cn">
+<link href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Serif+SC:wght@500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0E14; --bg2:#0E1220; --surface:#141A26; --surface2:#1A2231;
+  --line:#232C3D; --line2:#2E3A52;
+  --text:#E7EDF4; --dim:#97A2B3; --faint:#66707F;
+  --up:#EF4B52; --up2:#FF7A80; --down:#2FA46A; --down2:#63D09B;
+  --amber:#E6B457; --amber-dim:#B98A3B;
+  --serif:"Noto Serif SC",serif; --sans:"Noto Sans SC",system-ui,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.7;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--amber);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+.grid-bg{position:fixed;inset:0;z-index:-2;
+  background-image:linear-gradient(rgba(120,140,180,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(120,140,180,.05) 1px,transparent 1px);
+  background-size:44px 44px;}
+.grid-bg::after{content:"";position:fixed;inset:0;
+  background:radial-gradient(1200px 520px at 50% -10%,rgba(230,180,87,.10),transparent 60%),
+             radial-gradient(900px 500px at 85% 8%,rgba(47,164,106,.08),transparent 55%);}
+.hero{position:relative;min-height:78vh;display:flex;flex-direction:column;justify-content:center;
+  padding:84px 20px 40px;overflow:hidden;border-bottom:1px solid var(--line);}
+.hero-inner{max-width:1180px;margin:0 auto;width:100%;}
+.eyebrow{display:flex;align-items:center;gap:10px;font-family:var(--mono);font-size:13px;letter-spacing:.28em;color:var(--amber);margin-bottom:22px}
+.eyebrow::before{content:"";width:34px;height:1px;background:var(--amber)}
+.hero h1{font-family:var(--serif);font-weight:900;font-size:clamp(38px,7.5vw,84px);line-height:1.08;letter-spacing:.01em}
+.hero h1 .accent{color:var(--amber)}
+.hero .sub{margin-top:22px;max-width:640px;color:var(--dim);font-size:clamp(15px,2.2vw,18px);font-weight:300}
+.hero .sub b{color:var(--text);font-weight:500}
+.stats{display:flex;flex-wrap:wrap;gap:26px;margin-top:38px}
+.stat{display:flex;flex-direction:column;gap:2px;border-left:2px solid var(--line2);padding-left:16px}
+.stat .num{font-family:var(--serif);font-weight:900;font-size:30px;line-height:1;color:var(--text)}
+.stat .num i{font-style:normal;color:var(--amber)}
+.stat .lab{font-size:12px;color:var(--faint);letter-spacing:.12em}
+.candle-stage{position:absolute;inset:0;z-index:-1;opacity:.5;pointer-events:none}
+.candle-stage svg{position:absolute;right:-6%;bottom:-4%;width:86%;max-width:900px;height:auto}
+.candle{transform-origin:50% 100%;animation:rise 1.1s cubic-bezier(.2,.7,.2,1) both}
+@keyframes rise{0%{opacity:0;transform:translateY(26px) scaleY(.6)}100%{opacity:1;transform:translateY(0) scaleY(1)}}
+.candle.dim{opacity:.22}
+.flowline{stroke-dasharray:6 7;animation:flow 26s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-260}}
+.glow{animation:glowp 3.4s ease-in-out infinite}
+@keyframes glowp{0%,100%{opacity:.25}50%{opacity:.9}}
+.legend{max-width:1180px;margin:0 auto;padding:34px 20px 10px}
+.legend-card{background:linear-gradient(180deg,var(--surface),rgba(20,26,38,.4));border:1px solid var(--line);border-radius:14px;padding:22px 24px;display:flex;flex-wrap:wrap;gap:22px;align-items:flex-start}
+.legend-item{flex:1;min-width:200px}
+.legend-item h4{font-size:13px;letter-spacing:.1em;color:var(--faint);margin-bottom:10px;font-weight:500}
+.legend-candle{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.lc{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)}
+.lc .sw{width:16px;height:16px;border-radius:3px}
+.lc .up{background:var(--up)} .lc .down{background:var(--down)} .lc .doji{background:transparent;border:1.5px solid var(--dim)}
+.filters{position:sticky;top:0;z-index:40;background:rgba(11,14,20,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.filter-bar{max-width:1180px;margin:0 auto;padding:12px 20px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.fgroup{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fgroup .flab{font-size:12px;color:var(--faint);margin-right:2px;letter-spacing:.06em}
+.chip{border:1px solid var(--line2);background:transparent;color:var(--dim);font-size:13px;padding:6px 13px;border-radius:999px;transition:.15s}
+.chip:hover{color:var(--text);border-color:var(--amber)}
+.chip.on{background:var(--amber);border-color:var(--amber);color:#1A1303;font-weight:600}
+.search{margin-left:auto;position:relative}
+.search input{background:var(--surface2);border:1px solid var(--line2);color:var(--text);font-family:inherit;font-size:14px;padding:8px 14px 8px 34px;border-radius:999px;width:200px;outline:none;transition:.15s}
+.search input:focus{border-color:var(--amber);width:240px}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);pointer-events:none}
+.count{max-width:1180px;margin:0 auto;padding:6px 22px 0;font-size:12px;color:var(--faint)}
+.grid-wrap{max-width:1180px;margin:0 auto;padding:24px 20px 60px}
+.grid{display:grid;grid-template-columns:1fr;gap:16px}
+.cell{position:relative;background:linear-gradient(180deg,var(--surface),rgba(20,26,38,.35));border:1px solid var(--line);border-radius:14px;padding:18px;cursor:pointer;transition:transform .18s,border-color .18s,background .18s;display:flex;flex-direction:column;min-width:0;text-align:left;color:inherit}
+.cell:hover{transform:translateY(-3px);border-color:var(--amber);background:linear-gradient(180deg,var(--surface2),rgba(26,34,49,.45))}
+.cell:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.cell .candle{display:block;width:100%;height:88px;margin:0 auto 10px;opacity:1;animation:none}
+.cell .cn{font-family:var(--serif);font-weight:700;font-size:18px;line-height:1.3}
+.cell .en{font-size:12px;color:var(--faint);margin-top:2px;font-family:var(--mono)}
+.cell .tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.tag{font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid var(--line2);color:var(--dim);letter-spacing:.04em}
+.tag.up{color:var(--up2);border-color:rgba(239,75,82,.4);background:rgba(239,75,82,.08)}
+.tag.down{color:var(--down2);border-color:rgba(47,164,106,.4);background:rgba(47,164,106,.08)}
+.tag.neu{color:var(--amber);border-color:rgba(230,180,87,.4);background:rgba(230,180,87,.08)}
+.cell .hint{font-size:12.5px;color:var(--dim);margin-top:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{grid-column:1/-1;text-align:center;padding:80px 20px;color:var(--faint)}
+.empty b{display:block;font-size:18px;color:var(--dim);margin-bottom:6px}
+.modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal .backdrop{position:absolute;inset:0;background:rgba(6,8,12,.72);backdrop-filter:blur(4px)}
+.modal .panel{position:relative;width:min(720px,100%);max-height:88vh;overflow:auto;background:var(--bg2);border:1px solid var(--line2);border-radius:18px;padding:30px 28px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
+.modal .close{position:absolute;top:14px;right:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:var(--dim);font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center}
+.modal .close:hover{border-color:var(--amber);color:var(--amber)}
+.m-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.m-kicker{font-family:var(--mono);font-size:12px;letter-spacing:.2em;color:var(--amber)}
+.m-head h2{font-family:var(--serif);font-size:26px;font-weight:900}
+.m-head .en{font-size:13px;color:var(--faint);font-family:var(--mono)}
+.m-candle{width:100%;height:180px;margin:18px 0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px}
+.m-candle svg{width:100%;height:100%}
+.m-tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.m-body p{color:var(--dim);font-size:15px;margin-bottom:12px}
+.m-note{background:var(--surface);border-left:3px solid var(--amber);border-radius:0 10px 10px 0;padding:14px 16px;color:var(--text);font-size:14px}
+.m-note .nl{display:block;font-size:12px;color:var(--faint);margin-bottom:4px;letter-spacing:.08em}
+footer{border-top:1px solid var(--line);padding:34px 20px 60px;text-align:center;color:var(--faint);font-size:13px}
+footer b{color:var(--dim);font-weight:500}
+@media(min-width:500px){.grid{grid-template-columns:repeat(2,1fr)}}
+@media(min-width:1024px){.grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:1400px){.grid{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:640px){.search{margin-left:0;width:100%}.search input{width:100%}.search input:focus{width:100%}.filters{position:static}.hero{padding-top:70px}.filter-bar{padding:12px 16px}}
+</style>
+</head>
+<body>
+<div class="grid-bg" aria-hidden="true"></div>
+<header class="hero">
+  <div class="candle-stage" aria-hidden="true">
+    <svg viewBox="0 0 900 460" preserveAspectRatio="xMidYMax meet">
+      <line class="flowline" x1="40" y1="350" x2="860" y2="350" stroke="#3A4A66" stroke-width="1"/>
+      <line class="flowline" x1="60" y1="300" x2="850" y2="120" stroke="#E6B457" stroke-width="1.4" opacity=".5"/>
+      <g transform="translate(90,250)"><rect class="candle" x="0" y="-40" width="34" height="60" fill="#EF4B52"/><line class="candle" x1="17" y1="-62" x2="17" y2="26" stroke="#EF4B52" stroke-width="2"/></g>
+      <g transform="translate(170,216)"><rect class="candle dim" x="0" y="-30" width="34" height="52" fill="#EF4B52"/><line class="candle" x1="17" y1="-52" x2="17" y2="28" stroke="#EF4B52" stroke-width="2"/></g>
+      <g transform="translate(250,178)"><rect class="candle" x="0" y="-34" width="34" height="58" fill="#EF4B52"/><line class="candle" x1="17" y1="-58" x2="17" y2="26" stroke="#EF4B52" stroke-width="2"/></g>
+      <g transform="translate(330,150)"><rect class="candle dim" x="0" y="-46" width="34" height="66" fill="#EF4B52"/><line class="candle" x1="17" y1="-70" x2="17" y2="24" stroke="#EF4B52" stroke-width="2"/></g>
+      <g transform="translate(410,116)"><rect class="candle" x="0" y="-26" width="34" height="50" fill="#EF4B52"/><line class="candle" x1="17" y1="-96" x2="17" y2="30" stroke="#EF4B52" stroke-width="2"/></g>
+      <g transform="translate(490,96)"><rect class="candle" x="0" y="-12" width="34" height="26" fill="transparent" stroke="#2FA46A" stroke-width="2.4"/><line class="candle" x1="17" y1="-96" x2="17" y2="18" stroke="#2FA46A" stroke-width="2"/></g>
+      <g transform="translate(570,140)"><rect class="candle dim" x="0" y="6" width="34" height="56" fill="#2FA46A"/><line class="candle" x1="17" y1="-14" x2="17" y2="80" stroke="#2FA46A" stroke-width="2"/></g>
+      <g transform="translate(650,180)"><rect class="candle" x="0" y="4" width="34" height="52" fill="#2FA46A"/><line class="candle" x1="17" y1="-16" x2="17" y2="78" stroke="#2FA46A" stroke-width="2"/></g>
+      <g transform="translate(730,224)"><rect class="candle" x="0" y="0" width="34" height="58" fill="#2FA46A"/><line class="candle" x1="17" y1="-20" x2="17" y2="80" stroke="#2FA46A" stroke-width="2"/></g>
+      <circle class="glow" cx="428" cy="16" r="120" fill="url(#g1)"/>
+      <defs><radialGradient id="g1"><stop offset="0%" stop-color="#E6B457" stop-opacity=".5"/><stop offset="100%" stop-color="#E6B457" stop-opacity="0"/></radialGradient></defs>
+    </svg>
+  </div>
+  <div class="hero-inner">
+    <div class="eyebrow">JAPANESE CANDLESTICK CHARTING</div>
+    <h1>日本蜡烛图<br><span class="accent">K 线技术形态</span>图谱</h1>
+    <p class="sub">源自史蒂夫·尼森（Steve Nison）的经典著作《日本蜡烛图技术》。以<b>红色＝看涨、绿色＝看跌</b>的蜡烛语言，逐一拆解全部反转与持续形态——每一枚都配示意图与识别要点。</p>
+    <div class="stats">
+      <div class="stat"><span class="num"><i>52</i>+</span><span class="lab">形态收录</span></div>
+      <div class="stat"><span class="num">3</span><span class="lab">按 K 线根数分类</span></div>
+      <div class="stat"><span class="num">2</span><span class="lab">反转 / 持续</span></div>
+      <div class="stat"><span class="num">红绿</span><span class="lab">看涨 / 看跌信号</span></div>
+    </div>
+  </div>
+</header>
+<section class="legend">
+  <div class="legend-card">
+    <div class="legend-item" style="flex:1.6">
+      <h4>如何读懂一根蜡烛</h4>
+      <div class="legend-candle">
+        <div class="lc"><span class="sw up"></span>实体＝开收盘，红涨</div>
+        <div class="lc"><span class="sw down"></span>实体＝开收盘，绿跌</div>
+        <div class="lc"><span class="sw doji"></span>十字＝开收同价</div>
+        <div class="lc"><span style="display:inline-block;width:1px;height:18px;background:var(--dim)"></span>上下影线＝最高最低</div>
+      </div>
+    </div>
+    <div class="legend-item">
+      <h4>分类逻辑</h4>
+      <div style="font-size:13px;color:var(--dim)">按组成 K 线根数：单根 / 双根 / 三根以上；按功能：反转信号 / 持续信号。星线＝实体极小的十字或纺锤。</div>
+    </div>
+  </div>
+</section>
+<nav class="filters" id="filters">
+  <div class="filter-bar">
+    <div class="fgroup"><span class="flab">根数</span>
+      <button class="chip on" data-f="group" data-v="全部">全部</button>
+      <button class="chip" data-f="group" data-v="单根">单根</button>
+      <button class="chip" data-f="group" data-v="双根">双根</button>
+      <button class="chip" data-f="group" data-v="三根以上">三根以上</button>
+    </div>
+    <div class="fgroup"><span class="flab">信号</span>
+      <button class="chip on" data-f="sig" data-v="全部">全部</button>
+      <button class="chip" data-f="sig" data-v="看涨">看涨</button>
+      <button class="chip" data-f="sig" data-v="看跌">看跌</button>
+      <button class="chip" data-f="sig" data-v="中性">中性</button>
+    </div>
+    <div class="fgroup"><span class="flab">类型</span>
+      <button class="chip on" data-f="kind" data-v="全部">全部</button>
+      <button class="chip" data-f="kind" data-v="反转">反转</button>
+      <button class="chip" data-f="kind" data-v="持续">持续</button>
+    </div>
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#66707F" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="q" type="text" placeholder="搜索形态…" aria-label="搜索形态">
+    </div>
+  </div>
+</nav>
+<p class="count" id="count"></p>
+<main class="grid-wrap">
+  <div class="grid" id="grid"></div>
+</main>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="backdrop" data-close></div>
+  <div class="panel">
+    <button class="close" data-close aria-label="关闭">×</button>
+    <div class="m-kicker" id="mKicker"></div>
+    <div class="m-head">
+      <h2 id="mTitle"></h2>
+      <span class="en" id="mEn"></span>
+    </div>
+    <div class="m-tags" id="mTags"></div>
+    <div class="m-candle" id="mCandle"></div>
+    <div class="m-body" id="mBody"></div>
+    <div class="m-note"><span class="nl">识别要点</span><span id="mNote"></span></div>
+  </div>
+</div>
+<footer>以上形态与识别要点整理自《日本蜡烛图技术》（Steve Nison 著），蜡烛图为示意绘制，非真实行情。<br><b>仅供学习参考，不构成任何投资建议。</b></footer>
+<script>
+const UP='#EF4B52', DOWN='#2FA46A';
+let PATTERNS = [];
+PATTERNS.push(
+{id:'hammer',cn:'锤子线',en:'Hammer',group:'单根',sig:'看涨',kind:'反转',key:'锤子 hammer 底部',
+ desc:'出现在下跌末端，下影线至少为实体两倍、几乎无上影，如锤子般探底后收回。',
+ long:'锤子线的实体位于整个价格范围的上端，下影线极长而上影线极短甚至没有。它出现于下降趋势中，表明卖压释放后买方开始接盘，是潜在的底部反转信号。实体颜色意义不大，但白色（看涨）实体信号更强。',
+ note:'必须处于下跌趋势之后；下影线长度 ≥ 实体的 2 倍；实体处于区间上端；上影线短或无。',
+ candle:[[58,72,8,56]]},
+{id:'hanging-man',cn:'上吊线',en:'Hanging Man',group:'单根',sig:'看跌',kind:'反转',key:'上吊 hanging 顶部',
+ desc:'与锤子线外形相同，但出现在上涨顶部，预示买盘衰竭、价格可能见顶回落。',
+ long:'上吊线与锤子线的形态完全一致（长下影、小实体），区别只在于所处位置——它出现在上升趋势末端。此时长下影说明盘中遭到强力抛售，虽然收盘被拉回，但已暴露上方卖压，需后续阴线确认。',
+ note:'必须处于上涨趋势之后；长下影、小实体、几乎无上影；需要第二根阴线确认。',
+ candle:[[55,68,5,58]]},
+{id:'inverted-hammer',cn:'倒锤子线',en:'Inverted Hammer',group:'单根',sig:'看涨',kind:'反转',key:'倒锤 底部',
+ desc:'下跌末端出现长上影小实体，表明上方抛压虽大但买方已尝试向上试探。',
+ long:'倒锤子线在下降趋势末尾出现，上影线很长、实体很小且位于下端。它说明盘中买方一度把价格推得很高，虽被卖压打回，但买盘正在聚集，是潜在的底部反转信号，通常需要次日阳线确认。',
+ note:'处于下跌趋势之后；上影线 ≥ 实体 2 倍；实体位于下端；需次日确认。',
+ candle:[[40,95,38,58]]},
+{id:'shooting-star',cn:'射击之星',en:'Shooting Star',group:'单根',sig:'看跌',kind:'反转',key:'射击之星 流星 顶部',
+ desc:'上涨顶部出现长上影、小实体，如流星划过，警示上方抛压沉重。',
+ long:'射击之星出现于上升趋势末端，上影线极长、实体小且位于价格区间下端。它表明开盘后价格被大幅推高，但随后遭遇强烈卖压被打回，多头动能衰竭，是可靠的顶部反转预警。',
+ note:'处于上涨趋势之后；上影线长、实体小；实体位于下端；需次日确认。',
+ candle:[[58,96,55,42]]},
+{id:'long-white',cn:'长阳线',en:'Long White Body',group:'单根',sig:'看涨',kind:'持续',key:'长阳 大阳 阳线',
+ desc:'实体极长、影线极短的阳线，买方占据绝对主动，强势看涨。',
+ long:'长阳线实体覆盖大部分价格区间，上下影线很短，说明开盘后价格一路上行、几乎以最高价收盘，买方力量压倒性占优。在突破或下跌后的反转中尤为有力。',
+ note:'实体占价格区间大部分；影线短；收盘贴近最高价。',
+ candle:[[30,95,28,92]]},
+{id:'long-black',cn:'长阴线',en:'Long Black Body',group:'单根',sig:'看跌',kind:'持续',key:'长阴 大阴 阴线',
+ desc:'实体极长、影线极短的阴线，卖方全面压制，弱势看跌。',
+ long:'长阴线实体几乎占据整个价格区间，开盘后一路下跌、几乎以最低价收盘，说明卖方力量压倒性占优，常出现在下跌趋势的加速或顶部反转的起点。',
+ note:'实体占价格区间大部分；影线短；收盘贴近最低价。',
+ candle:[[70,72,8,12]]},
+{id:'doji',cn:'十字星',en:'Doji',group:'单根',sig:'中性',kind:'反转',key:'十字星 doji',
+ desc:'开盘价与收盘价几乎相同，多空力量暂时均衡，常预示趋势可能转向。',
+ long:'十字星的实体极短，开盘收盘几乎同价，说明多空双方在该价位僵持不下。它单独出现意义有限，但出现在长期趋势末端常是反转预警；在上升或下降趋势中出现十字星，往往值得警惕。',
+ note:'实体极短（接近无）；影线可长可短；高位/低位更有意义。',
+ candle:[[50,88,10,50]]},
+{id:'long-legged',cn:'长腿十字星',en:'Long-legged Doji',group:'单根',sig:'中性',kind:'反转',key:'长腿 十字星',
+ desc:'上下影线都很长的十字星，多空激烈拉锯，出现在趋势末端多为反转信号。',
+ long:'长腿十字星上下影线均很长，说明盘中价格大幅上冲又大幅下探，最终开收盘回到同一点，多空剧烈争夺且胜负未分，反映了市场分歧极大，趋势可能动摇。',
+ note:'上下影线都很长；实体极小；高波动位置出现更有效。',
+ candle:[[50,92,6,50]]},
+{id:'dragonfly',cn:'蜻蜓十字线',en:'Dragonfly Doji',group:'单根',sig:'中性',kind:'反转',key:'蜻蜓 十字线 底部',
+ desc:'只有长下影、没有上影的十字星，形似蜻蜓点水，底部反转含义较强。',
+ long:'蜻蜓十字线开盘收盘同价且都处于区间上端，只有一条长下影线向下探底。它表明盘中价格被大幅压低后又被强力拉回，买方承接意愿明显，出现在下降趋势末端是较可靠的底部反转信号。',
+ note:'开收同价、位于区间上端；仅长下影；出现在下跌末端。',
+ candle:[[50,55,6,50]]},
+{id:'gravestone',cn:'墓碑十字线',en:'Gravestone Doji',group:'单根',sig:'中性',kind:'反转',key:'墓碑 十字线 顶部',
+ desc:'只有长上影、没有下影的十字星，如同墓碑，顶部反转含义较强。',
+ long:'墓碑十字线开盘收盘同价且都处于区间下端，只有一条长上影线向上冲高。它表明盘中价格被大幅推高后遭到抛售打回原点，上方卖压沉重，出现在上升趋势末端是可靠的顶部反转信号。',
+ note:'开收同价、位于区间下端；仅长上影；出现在上涨末端。',
+ candle:[[50,94,50,50]]},
+{id:'four-price',cn:'四价合一十字线',en:'Four-price Doji',group:'单根',sig:'中性',kind:'反转',key:'四价 一字',
+ desc:'开、高、低、收四个价格完全相同的一字线，交投极度清淡或一字涨停/跌停。',
+ long:'四价合一十字线的开高低收完全相等，画出来只是一条水平线。它通常意味着市场几乎没有成交波动（如一字板），本身信息有限，多出现在极端情形下。',
+ note:'四价完全相等；罕见；代表极端一致或极度清淡。',
+ candle:[[50,50,50,50]]},
+{id:'spinning-top',cn:'纺锤线',en:'Spinning Top',group:'单根',sig:'中性',kind:'反转',key:'纺锤 十字 拉锯',
+ desc:'实体小、上下影线都较长的蜡烛，显示多空拉锯、原有趋势动能减弱。',
+ long:'纺锤线实体很小，上下影线长度相当，说明开盘后价格上下波动但收盘与开盘接近，多空力量接近均衡、趋势动能正在减弱。它常出现在趋势的休整或转折阶段，本身不指明方向。',
+ note:'实体小；上下影线较长；常伴随趋势动能衰减。',
+ candle:[[45,72,28,55]]},
+{id:'high-wave',cn:'风高浪大线',en:'High Wave Candle',group:'单根',sig:'中性',kind:'反转',key:'风高浪大 高浪',
+ desc:'长影线加小实体，价格大幅震荡却原地踏步，预示可能反转。',
+ long:'风高浪大线拥有很长的上下影线和极小的实体，是纺锤线的高波动版。它说明市场在该区域剧烈震荡但无法形成明确方向，通常出现在重要转折点附近，反映多空分歧达到顶点。',
+ note:'上下影线都很长、实体极小；高波动震荡；易出现在转折区。',
+ candle:[[52,85,12,48]]},
+{id:'marubozu-white',cn:'光头光脚阳线',en:'White Marubozu',group:'单根',sig:'看涨',kind:'持续',key:'光头光脚 阳线 marubozu',
+ desc:'无上下影线的长阳线，从开盘一路强势拉到收盘，买气极盛。',
+ long:'光头光脚阳线（白色蜡烛线）没有上下影线，开盘价即最低价、收盘价即最高价，价格单边上行毫无回撤，显示买方全天掌控局面，是最强的单边看涨信号之一。',
+ note:'无上下影线；开盘＝最低、收盘＝最高；单边强势。',
+ candle:[[30,95,30,95]]},
+{id:'marubozu-black',cn:'光头光脚阴线',en:'Black Marubozu',group:'单根',sig:'看跌',kind:'持续',key:'光头光脚 阴线 marubozu',
+ desc:'无上下影线的长阴线，从开盘一路下杀到收盘，卖气极盛。',
+ long:'光头光脚阴线（黑色蜡烛线）没有上下影线，开盘价即最高价、收盘价即最低价，价格单边下行毫无反弹，显示卖方全天掌控局面，是最强的单边看跌信号之一。',
+ note:'无上下影线；开盘＝最高、收盘＝最低；单边弱势。',
+ candle:[[72,28,72,28]]},
+{id:'bullish-engulf',cn:'看涨吞没',en:'Bullish Engulfing',group:'双根',sig:'看涨',kind:'反转',key:'吞没 阳包阴 engulfing',
+ desc:'后一根阳线实体完全吞没前一根阴线实体，多方强势反攻，经典底部反转。',
+ long:'看涨吞没形态由两根蜡烛组成：第一根为阴线，第二根为阳线，且阳线实体完全包裹（吞没）阴线实体。它出现在下降趋势末端，意味着买方力量彻底扭转了此前的下跌，是尼森笔下最可靠的底部反转信号之一。',
+ note:'处于下降趋势之后；阳线实体完全覆盖阴线实体；第二根实体越长信号越强。',
+ candle:[[45,55,42,50],[40,82,36,78]]},
+{id:'bearish-engulf',cn:'看跌吞没',en:'Bearish Engulfing',group:'双根',sig:'看跌',kind:'反转',key:'吞没 阴包阳 engulfing',
+ desc:'后一根阴线实体完全吞没前一根阳线实体，空方彻底压制，经典顶部反转。',
+ long:'看跌吞没形态由第一根阳线和第二根阴线组成，且阴线实体完全吞没阳线实体。它出现在上升趋势末端，表明卖方力量一举扭转了上涨，是顶部反转的经典信号，吞没幅度越大越可靠。',
+ note:'处于上涨趋势之后；阴线实体完全覆盖阳线实体；第二根实体越长信号越强。',
+ candle:[[58,62,40,44],[68,92,62,74]]},
+{id:'piercing',cn:'曙光初现',en:'Piercing Line',group:'双根',sig:'看涨',kind:'反转',key:'曙光 刺透 底部',
+ desc:'阴线后出现一根深入其体内的阳线，如黎明破晓，预示底部反转。',
+ long:'曙光初现形态中，第一根为长阴线，第二根为阳线且其收盘价深入第一根阴线实体的中点以上。它出现在下跌趋势末端，表明买盘已能收复此前大半跌幅，是较温和但可靠的底部反转信号。',
+ note:'下跌趋势之后；第二根阳线收盘刺入第一根阴线实体 1/2 以上；越深入越强。',
+ candle:[[55,58,30,34],[38,72,34,66]]},
+{id:'dark-cloud',cn:'乌云盖顶',en:'Dark Cloud Cover',group:'双根',sig:'看跌',kind:'反转',key:'乌云盖顶 顶部',
+ desc:'阳线后出现一根高开低走、深入其体内的阴线，如乌云压顶，预示见顶。',
+ long:'乌云盖顶形态中，第一根为长阳线，第二根高开但大幅回落，收盘深入第一根阳线实体的中点以下。它出现在上升趋势末端，说明上冲遭遇强抛压，是可靠的顶部反转信号。',
+ note:'上涨趋势之后；第二根阴线收盘刺入第一根阳线实体 1/2 以下；开盘越高越弱。',
+ candle:[[44,48,20,24],[62,84,50,70]]},
+{id:'harami-bull',cn:'看涨孕线',en:'Bullish Harami',group:'双根',sig:'看涨',kind:'反转',key:'孕线 母孕 harami',
+ desc:'大阴线后出现一根被完全包裹的小阳线，下跌动能衰竭，孕育反转。',
+ long:'看涨孕线（母亲与胎儿）由一根长阴线和一根被其实体完全包裹的小阳线组成，出现在下跌趋势末端。大阴线表示动能延续，随后的小阳线说明抛压减弱，是底部反转的温和预警。',
+ note:'下跌趋势之后；第二根小实体完全处于第一根大实体之内；需后续确认。',
+ candle:[[35,88,30,84],[48,62,44,56]]},
+{id:'harami-bear',cn:'看跌孕线',en:'Bearish Harami',group:'双根',sig:'看跌',kind:'反转',key:'孕线 母孕 harami',
+ desc:'大阳线后出现一根被完全包裹的小阴线，上涨动能枯竭，孕育反转。',
+ long:'看跌孕线由一根长阳线和一根被其完全包裹的小阴线组成，出现在上升趋势末端。长阳线延续上涨，随后的小阴线表明买盘乏力，是顶部反转的温和预警。',
+ note:'上涨趋势之后；第二根小实体完全处于第一根大实体之内；需后续确认。',
+ candle:[[62,92,58,88],[40,60,36,52]]},
+{id:'harami-cross',cn:'十字孕线',en:'Harami Cross',group:'双根',sig:'中性',kind:'反转',key:'十字孕线 母孕',
+ desc:'大实体后出现一根被包裹的十字星，多空僵持，反转预警强于普通孕线。',
+ long:'十字孕线是孕线的特殊形式：第二根不是小实体，而是一根十字星，且完全处于第一根大实体之内。它出现在趋势末端时，多空彻底僵持，反转信号比普通孕线更强烈。',
+ note:'趋势末端出现；第二根为十字星并位于第一根实体内；反转概率更高。',
+ candle:[[36,88,32,84],[50,55,45,50]]},
+{id:'tweezers-top',cn:'平头顶部',en:'Tweezers Top',group:'双根',sig:'看跌',kind:'反转',key:'平头 镊子 tweezers 顶部',
+ desc:'两根蜡烛的最高价几乎相同，共同构成平顶，预示上方压力。',
+ long:'平头顶部形态由两根或更多蜡烛组成，它们的最高价大致持平（同高点），像镊子般钳制价格上行。它出现在上升趋势末端，说明价格两次在同一价位受阻，是顶部反转信号。',
+ note:'上涨趋势之后；两根蜡烛最高价基本持平；高点上影越长越弱。',
+ candle:[[42,90,40,85],[78,90,72,80]]},
+{id:'tweezers-bot',cn:'平头底部',en:'Tweezers Bottom',group:'双根',sig:'看涨',kind:'反转',key:'平头 镊子 tweezers 底部',
+ desc:'两根蜡烛的最低价几乎相同，共同构成平底，预示下方支撑。',
+ long:'平头底部形态由两根或更多蜡烛组成，它们的最低价大致持平，像镊子般托住价格下行。它出现在下降趋势末端，说明价格两次在同一价位获得支撑，是底部反转信号。',
+ note:'下跌趋势之后；两根蜡烛最低价基本持平；低点下影越长越强。',
+ candle:[[58,62,12,58],[40,60,12,44]]},
+{id:'belt-bull',cn:'看涨捉腰带线',en:'Bullish Belt Hold',group:'双根',sig:'看涨',kind:'反转',key:'捉腰带 腰线 belt',
+ desc:'开盘即最低价并一路收高的光头阳线，如一根腰带束住底部，多方发动。',
+ long:'看涨捉腰带线是一根开盘价位于最低价、收盘大幅走高的长阳线（开盘无下影）。它出现在下跌趋势中，说明开盘即被买方接管、全天单边上行，是底部反转或上攻的信号。',
+ note:'下跌末端出现；开盘＝最低（光头）；长实体向上。',
+ candle:[[35,94,33,90]]},
+{id:'belt-bear',cn:'看跌捉腰带线',en:'Bearish Belt Hold',group:'双根',sig:'看跌',kind:'反转',key:'捉腰带 腰线 belt',
+ desc:'开盘即最高价并一路收低的光头阴线，卖方开盘即压制，空头发动。',
+ long:'看跌捉腰带线是一根开盘价位于最高价、收盘大幅走低的长阴线（开盘无上影）。它出现在上升趋势中，说明开盘即遭抛售、全天单边下行，是顶部反转或下跌的信号。',
+ note:'上涨末端出现；开盘＝最高（光头）；长实体向下。',
+ candle:[[65,68,8,10]]},
+{id:'meeting-bull',cn:'看涨反击线',en:'Bullish Counterattack',group:'双根',sig:'看涨',kind:'反转',key:'反击 约会线 底部',
+ desc:'阴线之后，阳线以相同收盘价反击，多空在底部对撞、多方占优。',
+ long:'看涨反击线（约会线）中，第一根为阴线，第二根低开后大幅走高，最终收盘价与第一根阴线的收盘价相同。它出现在下跌趋势末端，说明卖方动能被买方完全化解，是底部反转信号。',
+ note:'下跌末端出现；两阴一阳、收盘价相同；次日需确认。',
+ candle:[[60,64,36,40],[40,76,36,76]]},
+{id:'meeting-bear',cn:'看跌反击线',en:'Bearish Counterattack',group:'双根',sig:'看跌',kind:'反转',key:'反击 约会线 顶部',
+ desc:'阳线之后，阴线以相同收盘价反击，多空在顶部对撞、空方占优。',
+ long:'看跌反击线中，第一根为阳线，第二根高开后大幅回落，最终收盘价与第一根阳线收盘价相同。它出现在上升趋势末端，说明买方动能被卖方化解，是顶部反转信号。',
+ note:'上涨末端出现；两阳一阴、收盘价相同；次日需确认。',
+ candle:[[42,46,18,22],[64,86,18,82]]},
+{id:'in-neck',cn:'颈内线',en:'In-Neck Line',group:'双根',sig:'看跌',kind:'持续',key:'颈内线 持续',
+ desc:'下跌途中，反弹阳线仅回升至前阴线收盘位（颈部），随后料将续跌。',
+ long:'颈内线（切入线）是下跌持续形态：一根长阴线后，次一根阳线反弹，但收盘仅回升到前一根阴线收盘价附近（未深入其体内），说明反弹乏力，趋势大概率延续下行。',
+ note:'下跌途中出现；反弹阳线实体未深入前阴线；以续跌为主。',
+ candle:[[70,74,30,34],[40,72,38,34]]},
+{id:'on-neck',cn:'颈上线',en:'On-Neck Line',group:'双根',sig:'看跌',kind:'持续',key:'颈上线 持续',
+ desc:'下跌途中，反弹阳线收盘恰落在前阴线最低点（颈部），反弹更弱。',
+ long:'颈上线是下跌持续形态：一根长阴线后，次一根阳线反弹，但收盘恰好落在前一根阴线的最低价处（颈部），反弹力度比颈内线更弱，预示价格继续下行的概率较高。',
+ note:'下跌途中出现；反弹阳线收盘触及前阴线最低点；以续跌为主。',
+ candle:[[70,74,30,34],[34,70,34,30]]},
+{id:'separating-bull',cn:'看涨分手线',en:'Bullish Separating Lines',group:'双根',sig:'看涨',kind:'持续',key:'分手线 separating',
+ desc:'下跌后，阳线以与前阴线相同的开盘价重新上攻，显示趋势由跌转涨的分离。',
+ long:'看涨分手线中，前一根为阴线，后一根阳线以相同的开盘价开盘，但方向截然相反、一路走强。它表明同样的开盘价位上多空重新较量且多方获胜，是趋势延续或反转向上的信号。',
+ note:'两根蜡烛开盘价相同；一阴一阳方向相反；阳线确立方向。',
+ candle:[[40,90,38,86],[40,88,38,84]]},
+{id:'separating-bear',cn:'看跌分手线',en:'Bearish Separating Lines',group:'双根',sig:'看跌',kind:'持续',key:'分手线 separating',
+ desc:'上涨后，阴线以与前阳线相同的开盘价重新下杀，显示趋势由涨转跌的分离。',
+ long:'看跌分手线中，前一根为阳线，后一根阴线以相同的开盘价开盘，但方向截然相反、一路走弱。它表明同样的开盘价位上空方重新占据主动，是趋势延续或反转向下的信号。',
+ note:'两根蜡烛开盘价相同；一阳一阴方向相反；阴线确立方向。',
+ candle:[[60,64,16,20],[60,62,16,20]]}
+);
+PATTERNS.push(
+{id:'morning-star',cn:'启明星',en:'Morning Star',group:'三根以上',sig:'看涨',kind:'反转',key:'启明星 早晨之星 star',
+ desc:'长阴、小实体、长阳三段组合，如黎明启明星升起，强烈底部反转。',
+ long:'启明星由三根蜡烛组成：一根长阴线（延续下跌）、一根实体很小的星线（多空转向、可跳空）、一根长阳线（收复失地）。它出现在下降趋势末端，是尼森笔下最强烈的底部反转信号之一，尤其当星线与前阴线存在跳空时更有效。',
+ note:'下跌末端出现；中为星线（实体极小）；第三根长阳收复前阴线大部分跌幅。',
+ candle:[[55,58,30,34],[48,52,42,50],[40,88,38,84]]},
+{id:'evening-star',cn:'黄昏星',en:'Evening Star',group:'三根以上',sig:'看跌',kind:'反转',key:'黄昏星 星线 star',
+ desc:'长阳、小实体、长阴三段组合，如黄昏星坠，强烈顶部反转。',
+ long:'黄昏星由一根长阳线、一根实体很小的星线（位于高位、可跳空）和一根长阴线组成，出现在上升趋势末端。星线代表上冲动能衰竭，随后长阴确认顶部，是强烈可靠的顶部反转信号。',
+ note:'上涨末端出现；中为星线；第三根长阴跌破前阳线大部分涨幅。',
+ candle:[[40,44,22,26],[52,56,46,54],[70,80,66,74]]},
+{id:'morning-doji-star',cn:'十字启明星',en:'Morning Doji Star',group:'三根以上',sig:'看涨',kind:'反转',key:'十字启明星 star',
+ desc:'启明星的星线换成十字星，多空僵持更甚，底部反转信号更强。',
+ long:'十字启明星与启明星结构相同，只是中间的星线换成了十字星。十字星代表多空彻底僵持、趋势动能完全耗尽，随后长阳确立反转，其底部反转的可靠性高于普通启明星。',
+ note:'下跌末端出现；中为十字星；第三根长阳确认反转。',
+ candle:[[55,58,30,34],[50,54,46,50],[40,88,38,84]]},
+{id:'evening-doji-star',cn:'十字黄昏星',en:'Evening Doji Star',group:'三根以上',sig:'看跌',kind:'反转',key:'十字黄昏星 star',
+ desc:'黄昏星的星线换成十字星，顶部僵持更剧，反转信号更强。',
+ long:'十字黄昏星与黄昏星结构相同，只是中间的星线换成了十字星。十字星出现在上涨高位，表明多头动能彻底枯竭、多空僵持，随后长阴确认，是比普通黄昏星更可靠的顶部反转信号。',
+ note:'上涨末端出现；中为十字星；第三根长阴确认反转。',
+ candle:[[40,44,22,26],[50,54,46,50],[70,80,66,74]]},
+{id:'three-white',cn:'红三兵',en:'Three White Soldiers',group:'三根以上',sig:'看涨',kind:'持续',key:'红三兵 三阳 士兵',
+ desc:'三根依次升高的长阳线，如同士兵齐步推进，多方持续占优。',
+ long:'红三兵（三白兵）由三根依次走高、收盘逐步上移的长阳线组成，每根阳线开盘于前一根实体内、收盘创阶段新高。它出现在上涨或底部区域，确认多方动能持续，是可靠的看涨持续（或反转）信号。',
+ note:'三根长阳逐级走高；收盘依次创新高；开盘位于前实体之内。',
+ candle:[[30,50,28,48],[40,64,38,62],[54,80,52,78]]},
+{id:'three-black',cn:'黑三鸦',en:'Three Black Crows',group:'三根以上',sig:'看跌',kind:'持续',key:'黑三鸦 三阴 乌鸦',
+ desc:'三根依次走低的长阴线，如同三只乌鸦压顶，空方持续占优。',
+ long:'黑三鸦（三只乌鸦）由三根依次走低、收盘逐步下移的长阴线组成，每根阴线开盘于前一根实体内、收盘创阶段新低。它出现在上涨末端或下跌途中，确认空方动能持续，是可靠的看跌持续（或反转）信号。',
+ note:'三根长阴逐级走低；收盘依次创新低；开盘位于前实体之内。',
+ candle:[[70,52,68,48],[58,40,56,36],[46,26,44,22]]},
+{id:'rising-three',cn:'上升三法',en:'Rising Three Methods',group:'三根以上',sig:'看涨',kind:'持续',key:'上升三法 三法',
+ desc:'一根长阳后夹着三根小阴、再收长阳，上升途中洗盘后再上攻。',
+ long:'上升三法由五根蜡烛组成：一根长阳线，随后三根实体较小、回撤不破长阳低点的阴线，最后再一根长阳线创新高。它出现在上升趋势中，代表上涨途中的强势整理后延续上攻，是经典的看涨持续形态。',
+ note:'先长阳、中三根小阴不破阳线低点、后长阳创新高。',
+ candle:[[30,60,28,58],[44,52,42,50],[46,50,44,48],[42,52,40,50],[34,62,32,60]]},
+{id:'falling-three',cn:'下降三法',en:'Falling Three Methods',group:'三根以上',sig:'看跌',kind:'持续',key:'下降三法 三法',
+ desc:'一根长阴后夹着三根小阳、再收长阴，下跌途中反弹后再下杀。',
+ long:'下降三法与上升三法对称：一根长阴线，随后三根实体较小、反弹不破长阴高点的阳线，最后再一根长阴线创新低。它出现在下降趋势中，代表下跌途中的弱势反弹后延续下杀，是经典的看跌持续形态。',
+ note:'先长阴、中三根小阳不破阴线高点、后长阴创新低。',
+ candle:[[70,42,68,44],[56,48,54,50],[54,50,52,52],[58,48,56,50],[66,40,64,42]]},
+{id:'two-crows',cn:'两只乌鸦',en:'Two Crows',group:'三根以上',sig:'看跌',kind:'反转',key:'两只乌鸦 乌鸦',
+ desc:'长阳后出现两根未能收复的高位小阴线，如同乌鸦盘旋，预示转弱。',
+ long:'两只乌鸦形态中，先是一根长阳线，随后一根跳空高开的小阳线，最后一根阴线开盘于小阳线之上、收盘却跌回其开盘价下方。它出现在上升趋势中，说明高位的上冲接连受阻，是顶部反转的预警信号。',
+ note:'上涨末端出现；长阳后两根小实体未能继续走高；需确认。',
+ candle:[[40,44,22,26],[58,62,50,56],[58,52,54,48]]},
+{id:'gap-two-crows',cn:'向上跳空两只乌鸦',en:'Upward Gap Two Crows',group:'三根以上',sig:'看跌',kind:'反转',key:'跳空 两只乌鸦 乌鸦',
+ desc:'长阳跳空后，两根阴线相继收低但始终守在跳空缺口上，上攻乏力。',
+ long:'向上跳空两只乌鸦是两只乌鸦的变体：第一根长阳线后出现向上跳空，随后两根阴线高开低走、逐步收低，但仍守在跳空缺口之上。它出现在上升趋势中，反映高开后的买盘迅速衰竭，是看跌反转信号。',
+ note:'上涨末端出现向上跳空；随后两根阴线收低但不破缺口。',
+ candle:[[40,44,22,26],[68,74,62,68],[68,60,64,56]]},
+{id:'tri-star',cn:'三星形态',en:'Tri-Star',group:'三根以上',sig:'中性',kind:'反转',key:'三星 tri-star',
+ desc:'三根十字星并排，趋势彻底停滞，反转信号极强但极其罕见。',
+ long:'三星形态由三根十字星组成，且中间的十字星与两侧形成跳空，是极其罕见却非常强烈的反转信号。三根十字星密集出现，说明市场在该区域彻底失去方向、多空严重僵持，往往意味着原有趋势即将逆转。',
+ note:'三根十字星并排（中者跳空）；极罕见；反转意义极强。',
+ candle:[[50,54,46,50],[48,52,44,48],[50,54,46,50]]},
+{id:'three-mountain',cn:'三山顶部',en:'Three Mountain Top',group:'三根以上',sig:'看跌',kind:'反转',key:'三山 头部',
+ desc:'三次冲高形成三座山峰，第三次未能创新高，多方力竭，顶部反转。',
+ long:'三山顶部形态指价格三次冲高、形成三座山峰状的高点。若第三次冲高未能超越前两次高点（动能衰减），即构成顶部反转预警；当三座山的中峰最高时，其形态便演变为头肩顶。',
+ note:'三次冲高形成三峰；第三峰动能衰减；跌破颈线确认。',
+ candle:[[30,60,28,56],[40,76,38,72],[32,64,30,60],[40,78,38,74],[30,60,28,56]]},
+{id:'three-river',cn:'三川底部',en:'Three River Bottom',group:'三根以上',sig:'看涨',kind:'反转',key:'三川 底部',
+ desc:'三次探底形成三条河谷，第三次未能创新低，空方力竭，底部反转。',
+ long:'三川底部形态指价格三次探底、形成三条河谷状的低点。若第三次探底未能跌破前两次低点，即构成底部反转预警，配合放量与长阳确认后，往往是可靠的阶段性底部。',
+ note:'三次探底形成三谷；第三谷动能衰减；放量长阳确认。',
+ candle:[[70,74,30,34],[60,70,20,60],[66,72,36,70]]},
+{id:'three-buddha',cn:'三尊（头肩顶）',en:'Three Buddhas (Head & Shoulders)',group:'三根以上',sig:'看跌',kind:'反转',key:'三尊 头肩 头肩顶',
+ desc:'左右两肩夹一个更高头部，跌破颈线后确立，经典顶部反转。',
+ long:'三尊即头肩顶形态：左右两个相对较低的“肩”，中间一个更高的“头”，颈线连接两肩的低点。当价格跌破颈线时，顶部反转得以确认，是技术分析中最为经典、可靠的顶部形态之一。',
+ note:'左肩—头部—右肩结构；跌破颈线确认；量价配合更有效。',
+ candle:[[40,60,38,56],[52,84,50,80],[44,64,42,60],[52,76,50,72],[40,56,38,52]]},
+{id:'rounding-top',cn:'圆顶',en:'Rounding Top',group:'三根以上',sig:'看跌',kind:'反转',key:'圆顶 圆弧顶',
+ desc:'价格缓慢爬升形成圆润顶部后回落，多方逐步衰竭，顶部反转。',
+ long:'圆顶形态中，价格先逐步走高、在高位走平、再缓慢回落，画出一条圆弧状的顶部。它与头肩顶类似但更圆缓，反映多方动能逐步耗竭、空方渐占上风，是较为缓慢但可靠的顶部反转形态。',
+ note:'价格呈圆弧状见顶回落；右侧阴线增多；跌破颈线确认。',
+ candle:[[30,40,28,38],[36,56,34,54],[50,60,48,58],[60,56,58,54],[54,40,52,38]]},
+{id:'rounding-bot',cn:'圆底',en:'Rounding Bottom',group:'三根以上',sig:'看涨',kind:'反转',key:'圆底 圆弧底 锅底',
+ desc:'价格缓慢探底形成圆润底部后回升，空方逐步衰竭，底部反转。',
+ long:'圆底形态中，价格先逐步走低、在低位走平、再缓慢回升，画出一条圆弧状的底部（亦称锅底）。它反映空方动能逐步耗竭、买方渐占上风，是较为缓慢但可靠的底部反转形态。',
+ note:'价格呈圆弧状见底回升；右侧阳线增多；放量突破确认。',
+ candle:[[70,60,68,58],[60,44,58,42],[48,38,46,36],[40,44,38,42],[44,58,42,56]]},
+{id:'tower-top',cn:'塔形顶',en:'Tower Top',group:'三根以上',sig:'看跌',kind:'反转',key:'塔形顶 高塔',
+ desc:'长阳拔高后横向盘整、再长阴砸下，形如高塔，顶部反转。',
+ long:'塔形顶形态先以一根长阳线（或连续大阳）将价格快速拉起，随后在高位横向震荡、动能衰竭，最后以一根长阴线（或连续大阴）急速下挫，整个形态如同一座高塔。它出现在上升末端，是快速的顶部反转信号。',
+ note:'先长阳急拉、中部高位横盘、后长阴急跌。',
+ candle:[[28,72,26,68],[58,64,56,62],[56,60,54,58],[56,58,54,56],[54,40,52,30]]},
+{id:'tower-bot',cn:'塔形底',en:'Tower Bottom',group:'三根以上',sig:'看涨',kind:'反转',key:'塔形底 高塔',
+ desc:'长阴急杀后横向筑底、再长阳拉起，形如倒塔，底部反转。',
+ long:'塔形底形态先以一根长阴线（或连续大阴）快速下杀，随后在低位横向震荡、卖压衰竭，最后以一根长阳线（或连续大阳）急速拉起，整个形态如同一座倒塔。它出现在下降末端，是快速的底部反转信号。',
+ note:'先长阴急杀、中部低位横盘、后长阳急拉。',
+ candle:[[72,30,70,34],[42,38,40,42],[40,42,38,44],[38,40,36,42],[40,62,38,66]]},
+{id:'gap-up',cn:'向上跳空',en:'Upward Window (Gap)',group:'三根以上',sig:'看涨',kind:'持续',key:'跳空 缺口 窗口 gap',
+ desc:'价格向上跳空形成缺口（窗口），缺口不被回补则趋势延续。',
+ long:'向上跳空（向上窗口）指本根蜡烛的最低价高于前一根蜡烛的最高价，形成一段空白缺口。在上升趋势中，跳空缺口通常构成支撑，只要缺口不被回补，上涨趋势得以延续，回踩缺口往往提供买点。',
+ note:'上升趋势中出现；缺口为强支撑；回补缺口则信号减弱。',
+ candle:[[40,44,38,42],[58,72,56,70]]},
+{id:'gap-down',cn:'向下跳空',en:'Downward Window (Gap)',group:'三根以上',sig:'看跌',kind:'持续',key:'跳空 缺口 窗口 gap',
+ desc:'价格向下跳空形成缺口（窗口），缺口不被回补则跌势延续。',
+ long:'向下跳空（向下窗口）指本根蜡烛的最高价低于前一根蜡烛的最低价，形成一段空白缺口。在下降趋势中，跳空缺口通常构成压力，只要缺口不被回补，下跌趋势得以延续，反抽缺口往往提供卖点。',
+ note:'下降趋势中出现；缺口为强压力；回补缺口则信号减弱。',
+ candle:[[60,64,58,62],[42,34,40,30]]}
+);
+function candleSVG(arr){
+  const W=150,H=104,P=10;
+  let lo=Infinity,hi=-Infinity;
+  arr.forEach(c=>{lo=Math.min(lo,c[2]);hi=Math.max(hi,c[1]);});
+  const span=(hi-lo)||1;
+  const n=arr.length, step=(W-2*P)/n, bw=Math.max(7,step*0.58);
+  const y=v=>P+(H-2*P)*(hi-v)/span;
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-hidden="true">`;
+  arr.forEach((c,i)=>{
+    const x=P+i*step+step/2, up=c[3]>=c[0], col=up?UP:DOWN;
+    const oy=y(c[0]),cy=y(c[3]), bt=Math.min(oy,cy), bb=Math.max(oy,cy), bh=Math.max(bb-bt,1.6);
+    const top=y(c[1]), bot=y(c[2]);
+    s+=`<line x1="${x}" y1="${top}" x2="${x}" y2="${bot}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>`;
+    s+=`<rect x="${x-bw/2}" y="${bt}" width="${bw}" height="${bh}" fill="${col}"/>`;
+    if(bh<=2.2){s+=`<line x1="${x-bw/2}" y1="${bt}" x2="${x+bw/2}" y2="${bt}" stroke="${col}" stroke-width="2" stroke-linecap="round"/>`;}
+  });
+  s+=`</svg>`;
+  return s;
+}
+const state={group:'全部',sig:'全部',kind:'全部',q:''};
+function renderGrid(){
+  const kw=state.q.trim().toLowerCase();
+  const list=PATTERNS.filter(p=>
+    (state.group==='全部'||p.group===state.group)&&
+    (state.sig==='全部'||p.sig===state.sig)&&
+    (state.kind==='全部'||p.kind===state.kind)&&
+    (!kw||p.cn.toLowerCase().includes(kw)||p.en.toLowerCase().includes(kw)||p.desc.toLowerCase().includes(kw)||(p.key&&p.key.includes(kw)))
+  );
+  const grid=document.getElementById('grid');
+  if(!list.length){grid.innerHTML='<div class="empty"><b>没有匹配的形态</b>试试清除筛选或换个关键词</div>';}
+  else{grid.innerHTML=list.map(p=>`
+    <button class="cell" data-id="${p.id}" aria-label="查看 ${p.cn} 详情">
+      <span class="candle">${candleSVG(p.candle)}</span>
+      <span class="cn">${p.cn}</span>
+      <span class="en">${p.en}</span>
+      <span class="tags">${tagHTML(p)}</span>
+      <span class="hint">${p.desc}</span>
+    </button>`).join('');}
+  document.getElementById('count').textContent=`共 ${list.length} / ${PATTERNS.length} 个形态`;
+}
+function tagHTML(p){
+  const s=p.sig==='看涨'?'up':(p.sig==='看跌'?'down':'neu');
+  return `<span class="tag ${s}">${p.sig}</span><span class="tag">${p.kind}</span><span class="tag">${p.group}</span>`;
+}
+function openModal(id){
+  const p=PATTERNS.find(x=>x.id===id); if(!p)return;
+  document.getElementById('mKicker').textContent=p.group+' · '+p.kind;
+  document.getElementById('mTitle').textContent=p.cn;
+  document.getElementById('mEn').textContent=p.en;
+  document.getElementById('mTags').innerHTML=tagHTML(p);
+  document.getElementById('mCandle').innerHTML=candleSVG(p.candle);
+  document.getElementById('mBody').innerHTML=`<p>${p.desc}</p><p>${p.long||''}</p>`;
+  document.getElementById('mNote').textContent=p.note;
+  document.getElementById('modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow='';}
+document.querySelectorAll('.chip').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const f=b.dataset.f;
+    document.querySelectorAll(`.chip[data-f="${f}"]`).forEach(x=>x.classList.remove('on'));
+    b.classList.add('on'); state[f]=b.dataset.v; renderGrid();
+  });
+});
+document.getElementById('q').addEventListener('input',e=>{state.q=e.target.value;renderGrid();});
+document.getElementById('grid').addEventListener('click',e=>{
+  const cell=e.target.closest('.cell'); if(cell)openModal(cell.dataset.id);
+});
+document.getElementById('modal').querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',closeModal));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+renderGrid();
+</script>
+</body>
+</html>
